@@ -2,7 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { AuthAppStack } from '../lib/auth-app-stack';
- 
+
 const app = new cdk.App();
 new AuthAppStack(app, 'AuthAPIStack', {
   /* If you don't specify 'env', this stack will be environment-agnostic.
