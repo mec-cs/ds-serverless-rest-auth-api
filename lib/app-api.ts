@@ -26,7 +26,7 @@ export class AppApi extends Construct {
             architecture: lambda.Architecture.ARM_64,
             timeout: cdk.Duration.seconds(10),
             memorySize: 128,
-            runtime: lambda.Runtime.NODEJS_16_X,
+            runtime: lambda.Runtime.NODEJS_LATEST, // NODEJS_16_X is deprecated
             handler: "handler",
             environment: {
                 USER_POOL_ID: props.userPoolId,
@@ -35,25 +35,11 @@ export class AppApi extends Construct {
             },
         };
 
-        const protectedRes = appApi.root.addResource("protected");
-
-        const publicRes = appApi.root.addResource("public");
-
-        const protectedFn = new node.NodejsFunction(this, "ProtectedFn", {
-            ...appCommonFnProps,
-            entry: "./lambda/protected.ts",
-        });
-
-        const publicFn = new node.NodejsFunction(this, "PublicFn", {
-            ...appCommonFnProps,
-            entry: "./lambda/public.ts",
-        });
-
+        // authorizers
         const authorizerFn = new node.NodejsFunction(this, "AuthorizerFn", {
             ...appCommonFnProps,
             entry: "./lambda/auth/authorizer.ts",
         });
-
         const requestAuthorizer = new apig.RequestAuthorizer(
             this,
             "RequestAuthorizer",
@@ -64,11 +50,94 @@ export class AppApi extends Construct {
             }
         );
 
-        protectedRes.addMethod("GET", new apig.LambdaIntegration(protectedFn), {
+
+        // lambda functions for game
+        const getGamesFn = new node.NodejsFunction(this, "GetGamesFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/service/getGames.ts",
+        });
+
+        const getGameByIdFn = new node.NodejsFunction(this, "GetGameByIdFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/service/getGameById.ts",
+        });
+
+        const addGameFn = new node.NodejsFunction(this, "AddGameFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/service/addGame.ts",
+        });
+
+        const updateGameFn = new node.NodejsFunction(this, "UpdateGameFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/service/updateGame.ts",
+        });
+
+        const translateGameFn = new node.NodejsFunction(this, "TranslateGameFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/service/translateGame.ts",
+        });
+
+        // lambda functions for profile
+        const getUserProfileFn = new node.NodejsFunction(this, "GetUserProfileFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/profile/getUser.ts",
+        });
+
+        const updateUserProfileFn = new node.NodejsFunction(this, "UpdateUserProfileFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/profile/updateUser.ts",
+        });
+
+
+        // api endpoints
+        // game : /games
+        // user : /profile
+        const gamesResource = appApi.root.addResource("games");
+        const userGamesResource = gamesResource.addResource("{userId}");
+        const profileResource = appApi.root.addResource("profile");
+
+
+        //
+        // unauthorized accessible methods for /game and /profile endpoint
+        //
+
+        // GET all games
+        gamesResource.addMethod("GET", new apig.LambdaIntegration(getGamesFn));
+
+        // GET to a specific game
+        const gameResource = gamesResource.addResource("{gameId}");
+        gameResource.addMethod("GET", new apig.LambdaIntegration(getGameByIdFn));
+
+        // GET to a specific user, parameter is username
+        profileResource.addMethod("GET", new apig.LambdaIntegration(getUserProfileFn));
+
+        //
+        // authorized accessible methods for /game and /profile endpoint
+        //
+
+        // POST to add a new game
+        gamesResource.addMethod("POST", new apig.LambdaIntegration(addGameFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
 
-        publicRes.addMethod("GET", new apig.LambdaIntegration(publicFn));
+        // PUT to update game by parameters of user id and game id
+        userGamesResource.addResource("{gameId}").addMethod("PUT", new apig.LambdaIntegration(updateGameFn), {
+            authorizer: requestAuthorizer,
+            authorizationType: apig.AuthorizationType.CUSTOM,
+        });
+
+        // GET translation of a game, protected to the authorized users
+        userGamesResource.addResource("{gameId}/translation").addMethod("GET", new apig.LambdaIntegration(translateGameFn), {
+            authorizer: requestAuthorizer,
+            authorizationType: apig.AuthorizationType.CUSTOM,
+        });
+
+        // PUT request to update profile
+        profileResource.addMethod("PUT", new apig.LambdaIntegration(updateUserProfileFn), {
+            authorizer: requestAuthorizer,
+            authorizationType: apig.AuthorizationType.CUSTOM,
+        });
+
     }
 }

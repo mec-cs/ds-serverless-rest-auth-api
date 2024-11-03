@@ -1,0 +1,1 @@
+// GET method to a user, parameter -> ?username=..
