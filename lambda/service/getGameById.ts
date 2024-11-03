@@ -1,0 +1,1 @@
+// GET with public access, every user can query all games

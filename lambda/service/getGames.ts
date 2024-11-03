@@ -1,0 +1,1 @@
+// GET request with public access

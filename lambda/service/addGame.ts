@@ -1,0 +1,1 @@
+// POST with protected access, authorized users can create new games

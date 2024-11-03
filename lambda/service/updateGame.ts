@@ -1,0 +1,1 @@
+// PUT with protected action, authorized users can operate

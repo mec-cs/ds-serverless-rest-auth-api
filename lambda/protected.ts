@@ -9,7 +9,9 @@ import {
 
 export const handler: APIGatewayProxyHandlerV2 = async function (event: any) {
 	console.log("[EVENT]", JSON.stringify(event));
+
 	const cookies: CookieMap = parseCookies(event);
+
 	if (!cookies) {
 		return {
 			statusCode: 200,
@@ -22,7 +24,9 @@ export const handler: APIGatewayProxyHandlerV2 = async function (event: any) {
 		process.env.USER_POOL_ID,
 		process.env.REGION!
 	);
+
 	console.log(JSON.stringify(verifiedJwt));
+
 	return {
 		statusCode: 200,
 		body: "You received a super secret!!",
