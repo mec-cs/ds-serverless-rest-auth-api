@@ -33,6 +33,11 @@ export class AppApi extends Construct {
             tableName: "Users",
         });
 
+        usersTable.addGlobalSecondaryIndex({
+            indexName: "UsernameIndex",
+            partitionKey: { name: "username", type: dynamodb.AttributeType.STRING },
+        });
+
 
         const appApi = new apig.RestApi(this, "AppApi", {
             description: "App RestApi",
