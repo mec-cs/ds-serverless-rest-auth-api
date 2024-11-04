@@ -4,6 +4,10 @@ import { Construct } from "constructs";
 import * as apig from "aws-cdk-lib/aws-apigateway";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as node from "aws-cdk-lib/aws-lambda-nodejs";
+import * as custom from "aws-cdk-lib/custom-resources";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import { generateBatch } from "../lambda/utils";
+import { games, users } from "../seed/games"
 
 type AppApiProps = {
     userPoolId: string;
@@ -13,6 +17,22 @@ type AppApiProps = {
 export class AppApi extends Construct {
     constructor(scope: Construct, id: string, props: AppApiProps) {
         super(scope, id);
+
+        // Tables 
+        const gamesTable = new dynamodb.Table(this, "GamesTable", {
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            partitionKey: { name: "gameId", type: dynamodb.AttributeType.STRING },
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            tableName: "Games",
+        });
+
+        const usersTable = new dynamodb.Table(this, "UsersTable", {
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            tableName: "Users",
+        });
+
 
         const appApi = new apig.RestApi(this, "AppApi", {
             description: "App RestApi",
@@ -34,6 +54,25 @@ export class AppApi extends Construct {
                 REGION: cdk.Aws.REGION,
             },
         };
+
+
+        new custom.AwsCustomResource(this, "gamesddbInitData", {
+            onCreate: {
+                service: "DynamoDB",
+                action: "batchWriteItem",
+                parameters: {
+                    RequestItems: {
+                        [gamesTable.tableName]: generateBatch(games),
+                        [usersTable.tableName]: generateBatch(users),
+                    },
+                },
+                physicalResourceId: custom.PhysicalResourceId.of("gamesddbInitData"),
+            },
+            policy: custom.AwsCustomResourcePolicy.fromSdkCalls({
+                resources: [gamesTable.tableArn, usersTable.tableArn],
+            }),
+        });
+
 
         // authorizers
         const authorizerFn = new node.NodejsFunction(this, "AuthorizerFn", {
