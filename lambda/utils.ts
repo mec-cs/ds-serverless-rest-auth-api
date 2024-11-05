@@ -24,7 +24,7 @@ export type Jwk = {
         alg: string;
         e: string;
         kid: string;
-        kty: string;
+        kty: "RSA";
         n: string;
         use: string;
     }[];
@@ -60,7 +60,7 @@ export const verifyToken = async (
         const { data }: { data: Jwk } = await axios.get(url);
         const pem = jwkToPem(data.keys[0]);
 
-        return jwt.verify(token, pem, { algorithms: ["RS256"] });
+        return jwt.verify(token, pem, { algorithms: ["RS256"] }) as JwtToken;
     } catch (err) {
         console.log(err);
         return null;
