@@ -19,7 +19,7 @@ export class AppApi extends Construct {
         super(scope, id);
 
         // Tables 
-        const gamesTable = new dynamodb.Table(this, "GamesTable", {
+        const gamesTable = new dynamodb.Table(this, "Games", {
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
             partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
             sortKey: { name: "gameId", type: dynamodb.AttributeType.STRING },
@@ -33,7 +33,7 @@ export class AppApi extends Construct {
             projectionType: dynamodb.ProjectionType.ALL,
         });
 
-        const usersTable = new dynamodb.Table(this, "UsersTable", {
+        const usersTable = new dynamodb.Table(this, "Users", {
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
             partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
             removalPolicy: cdk.RemovalPolicy.DESTROY,
