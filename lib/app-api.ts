@@ -109,9 +109,9 @@ export class AppApi extends Construct {
             entry: "./lambda/service/getGames.ts",
         });
 
-        const getGameByIdFn = new node.NodejsFunction(this, "GetGameByIdFn", {
+        const getGameByFilter = new node.NodejsFunction(this, "getGameByFilter", {
             ...appCommonFnProps,
-            entry: "./lambda/service/getGameById.ts",
+            entry: "./lambda/service/getGameByFilter.ts",
         });
 
         const addGameFn = new node.NodejsFunction(this, "AddGameFn", {
@@ -146,8 +146,11 @@ export class AppApi extends Construct {
         // user : /profile
         const gamesResource = appApi.root.addResource("games");
         const userGamesResource = gamesResource.addResource("{userId}");
-        const profileResource = appApi.root.addResource("profile");
 
+        const gameIdResource = userGamesResource.addResource('{gameId}');
+        const translationResource = gameIdResource.addResource('translation');
+
+        const profileResource = appApi.root.addResource("profile");
 
         //
         // unauthorized accessible methods for /game and /profile endpoint
@@ -157,8 +160,7 @@ export class AppApi extends Construct {
         gamesResource.addMethod("GET", new apig.LambdaIntegration(getGamesFn));
 
         // GET to a specific game
-        const gameResource = gamesResource.addResource("{gameId}");
-        gameResource.addMethod("GET", new apig.LambdaIntegration(getGameByIdFn));
+        userGamesResource.addMethod("GET", new apig.LambdaIntegration(getGameByFilter));
 
         // GET to a specific user, parameter is username
         profileResource.addMethod("GET", new apig.LambdaIntegration(getUserProfileFn));
@@ -180,7 +182,7 @@ export class AppApi extends Construct {
         });
 
         // GET translation of a game, protected to the authorized users
-        userGamesResource.addResource("{gameId}/translation").addMethod("GET", new apig.LambdaIntegration(translateGameFn), {
+        translationResource.addMethod("GET", new apig.LambdaIntegration(translateGameFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
