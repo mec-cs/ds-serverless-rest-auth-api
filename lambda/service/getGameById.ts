@@ -2,7 +2,7 @@
 
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
 const ddbDocClient = createDDbDocClient();
 
@@ -22,16 +22,18 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
         }
 
         const commandOutput = await ddbDocClient.send(
-            new GetCommand({
+            new QueryCommand({
                 TableName: process.env.GAMES_TABLE,
-                Key: { gameId: gameId },
+                IndexName: "GameIdIndex",
+                KeyConditionExpression: "gameId = :gameId",
+                ExpressionAttributeValues: { ":gameId": gameId },
             })
         );
 
         console.log("GetCommand response: ", commandOutput);
 
         // if any game is not found with given id in params
-        if (!commandOutput.Item) {
+        if (!commandOutput.Items) {
             return {
                 statusCode: 404,
                 headers: { "content-type": "application/json" },
@@ -40,14 +42,14 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
         }
 
         const body = {
-            data: commandOutput.Item,
+            data: commandOutput.Items,
         };
 
         // expected successfull response return - HTTP 200
         return {
             statusCode: 200,
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ data: commandOutput.Item }),
+            body: JSON.stringify({ data: commandOutput.Items }),
         };
 
     } catch (error: any) {

@@ -49,7 +49,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
                 headers: {
                     "content-type": "application/json",
                 },
-                body: JSON.stringify({ message: "JWT Token failed, sign again!" }),
+                body: JSON.stringify({ message: "JWT has failed, sign again!" }),
             }
         }
 

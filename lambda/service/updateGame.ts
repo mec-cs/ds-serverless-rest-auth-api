@@ -2,10 +2,9 @@
 
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { CookieMap, JwtToken, parseCookies, verifyToken, } from "../utils";
-import { DynamoDBDocumentClient, UpdateCommand, } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, UpdateCommand, GetCommand, } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { Game } from "../../shared/types";
-import schema from "../../shared/types.schema.json";
 
 const ddbDocClient = createDDbDocClient();
 
@@ -39,25 +38,42 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
                 headers: {
                     "content-type": "application/json",
                 },
-                body: JSON.stringify({ message: "JWT Token failed, sign again!" }),
+                body: JSON.stringify({ message: "JWT has failed, sign again!" }),
             }
         }
 
-        const gameId = event?.pathParameters || {};
+        const userId = event.pathParameters?.userId;
+        const gameId = event.queryStringParameters?.gameId;
         const updatedGameData = JSON.parse(event.body || "{}");
 
-        if (!gameId) {
+        if (!userId || !gameId) {
             return {
                 statusCode: 400,
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "Missing game ID parameter" }),
+                body: JSON.stringify({ message: "Missing IDs in the parameter!" }),
+            };
+        }
+
+        // to check whether a game item existing with give IDs
+        const gameItemCommandOutput = await ddbDocClient.send(
+            new GetCommand({
+                TableName: process.env.TABLE_NAME,
+                Key: { userId, gameId },
+            })
+        );
+
+        if (!gameItemCommandOutput.Item) {
+            return {
+                statusCode: 404,
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ message: "No game found with the given IDs!" }),
             };
         }
 
         const commandOutput = await ddbDocClient.send(
             new UpdateCommand({
                 TableName: process.env.TABLE_NAME,
-                Key: { gameId },
+                Key: { userId, gameId },
                 UpdateExpression: `
                 set #title = :title, 
                     #genre = :genre, 
@@ -86,12 +102,17 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         );
 
         // to check updated game data
-        console.log(JSON.stringify(updatedGameData));
+        console.log("Updated profile: ", JSON.stringify(updatedGameData));
 
         return {
             statusCode: 200,
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ message: "Game updated successfully" }),
+            body: JSON.stringify(
+                {
+                    game: gameId,
+                    message: "Game updated successfully"
+                }
+            ),
         };
 
     } catch (error: any) {

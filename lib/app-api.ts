@@ -21,9 +21,16 @@ export class AppApi extends Construct {
         // Tables 
         const gamesTable = new dynamodb.Table(this, "GamesTable", {
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-            partitionKey: { name: "gameId", type: dynamodb.AttributeType.STRING },
+            partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
+            sortKey: { name: "gameId", type: dynamodb.AttributeType.STRING },
             removalPolicy: cdk.RemovalPolicy.DESTROY,
             tableName: "Games",
+        });
+
+        gamesTable.addGlobalSecondaryIndex({
+            indexName: "GameIdIndex",
+            partitionKey: { name: "gameId", type: dynamodb.AttributeType.STRING },
+            projectionType: dynamodb.ProjectionType.ALL,
         });
 
         const usersTable = new dynamodb.Table(this, "UsersTable", {
@@ -36,6 +43,7 @@ export class AppApi extends Construct {
         usersTable.addGlobalSecondaryIndex({
             indexName: "UsernameIndex",
             partitionKey: { name: "username", type: dynamodb.AttributeType.STRING },
+            projectionType: dynamodb.ProjectionType.ALL,
         });
 
 
@@ -166,7 +174,7 @@ export class AppApi extends Construct {
         });
 
         // PUT to update game by parameters of user id and game id
-        userGamesResource.addResource("{gameId}").addMethod("PUT", new apig.LambdaIntegration(updateGameFn), {
+        userGamesResource.addMethod("PUT", new apig.LambdaIntegration(updateGameFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
@@ -178,7 +186,7 @@ export class AppApi extends Construct {
         });
 
         // PUT request to update profile
-        profileResource.addMethod("PUT", new apig.LambdaIntegration(updateUserProfileFn), {
+        profileResource.addResource("{userId}").addMethod("PUT", new apig.LambdaIntegration(updateUserProfileFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
