@@ -75,7 +75,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
 
         const commandOutput = await ddbDocClient.send(
             new QueryCommand({
-                TableName: process.env.GAMES_TABLE,
+                TableName: process.env.GAME_TABLE_NAME,
                 KeyConditionExpression: keyConditionExpression,
                 FilterExpression: filterExpression || undefined,
                 ExpressionAttributeValues: expressionAttributeValues,

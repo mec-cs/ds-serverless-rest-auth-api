@@ -19,7 +19,7 @@ export class AppApi extends Construct {
         super(scope, id);
 
         // Tables 
-        const gamesTable = new dynamodb.Table(this, "Games", {
+        const gamesTable = new dynamodb.Table(this, "GamesTable", {
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
             partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
             sortKey: { name: "gameId", type: dynamodb.AttributeType.STRING },
@@ -33,7 +33,7 @@ export class AppApi extends Construct {
             projectionType: dynamodb.ProjectionType.ALL,
         });
 
-        const usersTable = new dynamodb.Table(this, "Users", {
+        const usersTable = new dynamodb.Table(this, "UsersTable", {
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
             partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
             removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -45,7 +45,6 @@ export class AppApi extends Construct {
             partitionKey: { name: "username", type: dynamodb.AttributeType.STRING },
             projectionType: dynamodb.ProjectionType.ALL,
         });
-
 
         const appApi = new apig.RestApi(this, "AppApi", {
             description: "App RestApi",
@@ -62,6 +61,8 @@ export class AppApi extends Construct {
             runtime: lambda.Runtime.NODEJS_LATEST, // NODEJS_16_X is deprecated
             handler: "handler",
             environment: {
+                GAME_TABLE_NAME: gamesTable.tableName,
+                USER_TABLE_NAME: usersTable.tableName,
                 USER_POOL_ID: props.userPoolId,
                 CLIENT_ID: props.userPoolClientId,
                 REGION: cdk.Aws.REGION,
@@ -75,8 +76,8 @@ export class AppApi extends Construct {
                 action: "batchWriteItem",
                 parameters: {
                     RequestItems: {
-                        [gamesTable.tableName]: generateBatch(games),
-                        [usersTable.tableName]: generateBatch(users),
+                        [gamesTable.tableName ?? "Games"]: generateBatch(games),
+                        [usersTable.tableName ?? "Users"]: generateBatch(users),
                     },
                 },
                 physicalResourceId: custom.PhysicalResourceId.of("gamesddbInitData"),
@@ -139,6 +140,17 @@ export class AppApi extends Construct {
             ...appCommonFnProps,
             entry: "./lambda/profile/updateUser.ts",
         });
+
+
+        // accesses
+        gamesTable.grantFullAccess(getGamesFn);
+        gamesTable.grantFullAccess(getGameByFilter);
+        gamesTable.grantFullAccess(addGameFn);
+        gamesTable.grantFullAccess(translateGameFn);
+        gamesTable.grantFullAccess(updateGameFn);
+
+        usersTable.grantFullAccess(getUserProfileFn);
+        gamesTable.grantFullAccess(updateUserProfileFn);
 
 
         // api endpoints

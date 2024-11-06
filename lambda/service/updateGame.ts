@@ -57,7 +57,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         // to check whether a game item existing with give IDs
         const gameItemCommandOutput = await ddbDocClient.send(
             new GetCommand({
-                TableName: process.env.TABLE_NAME,
+                TableName: process.env.GAME_TABLE_NAME,
                 Key: { userId, gameId },
             })
         );
@@ -72,7 +72,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         const commandOutput = await ddbDocClient.send(
             new UpdateCommand({
-                TableName: process.env.TABLE_NAME,
+                TableName: process.env.GAME_TABLE_NAME,
                 Key: { userId, gameId },
                 UpdateExpression: `
                 set #title = :title, 

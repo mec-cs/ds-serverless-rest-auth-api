@@ -46,7 +46,7 @@ export class AuthApi extends Construct {
             architecture: lambda.Architecture.ARM_64,
             timeout: cdk.Duration.seconds(10),
             memorySize: 128,
-            runtime: lambda.Runtime.NODEJS_16_X,
+            runtime: lambda.Runtime.NODEJS_LATEST,
             handler: "handler",
             environment: {
                 USER_POOL_ID: this.userPoolId,

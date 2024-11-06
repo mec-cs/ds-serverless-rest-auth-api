@@ -13,7 +13,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
 
         const commandOutput = await ddbClient.send(
             new ScanCommand({
-                TableName: process.env.TABLE_NAME,
+                TableName: process.env.GAME_TABLE_NAME,
             })
         );
 

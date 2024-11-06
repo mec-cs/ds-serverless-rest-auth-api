@@ -23,7 +23,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         }
 
         let commandInput: QueryCommandInput = {
-            TableName: process.env.TABLE_NAME,
+            TableName: process.env.USER_TABLE_NAME,
             IndexName: "UsernameIndex",
             KeyConditionExpression: "username = :username",
             ExpressionAttributeValues: { ":username": username, },
