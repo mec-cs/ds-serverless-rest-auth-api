@@ -125,6 +125,11 @@ export class AppApi extends Construct {
             entry: "./lambda/service/updateGame.ts",
         });
 
+        const deleteGameFn = new node.NodejsFunction(this, "DeleteGameFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/service/deleteGame.ts",
+        });
+
         const translateGameFn = new node.NodejsFunction(this, "TranslateGameFn", {
             ...appCommonFnProps,
             entry: "./lambda/service/translateGame.ts",
@@ -141,16 +146,23 @@ export class AppApi extends Construct {
             entry: "./lambda/profile/updateUser.ts",
         });
 
+        const deleteUserFn = new node.NodejsFunction(this, "DeleteUserFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/profile/deleteUser.ts",
+        });
 
-        // accesses
+        // table accesses
         gamesTable.grantFullAccess(getGamesFn);
         gamesTable.grantFullAccess(getGameByFilter);
         gamesTable.grantFullAccess(addGameFn);
         gamesTable.grantFullAccess(translateGameFn);
         gamesTable.grantFullAccess(updateGameFn);
+        gamesTable.grantFullAccess(deleteUserFn);
+        gamesTable.grantFullAccess(deleteGameFn);
+        gamesTable.grantFullAccess(updateUserProfileFn);
 
         usersTable.grantFullAccess(getUserProfileFn);
-        gamesTable.grantFullAccess(updateUserProfileFn);
+        usersTable.grantFullAccess(deleteUserFn);
 
 
         // api endpoints
@@ -193,6 +205,12 @@ export class AppApi extends Construct {
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
 
+        // DELETE to a specific game
+        userGamesResource.addMethod("DELETE", new apig.LambdaIntegration(deleteGameFn), {
+            authorizer: requestAuthorizer,
+            authorizationType: apig.AuthorizationType.CUSTOM,
+        });
+
         // GET translation of a game, protected to the authorized users
         translationResource.addMethod("GET", new apig.LambdaIntegration(translateGameFn), {
             authorizer: requestAuthorizer,
@@ -201,6 +219,12 @@ export class AppApi extends Construct {
 
         // PUT request to update profile
         profileResource.addResource("{userId}").addMethod("PUT", new apig.LambdaIntegration(updateUserProfileFn), {
+            authorizer: requestAuthorizer,
+            authorizationType: apig.AuthorizationType.CUSTOM,
+        });
+
+        // DELETE request to delete profile and its associated games
+        profileResource.addMethod("DELETE", new apig.LambdaIntegration(deleteUserFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
