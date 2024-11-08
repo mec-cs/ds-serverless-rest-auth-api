@@ -70,7 +70,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
             };
         }
 
-        const commandOutput = await ddbDocClient.send(
+        const updateCommandOutput = await ddbDocClient.send(
             new UpdateCommand({
                 TableName: process.env.GAME_TABLE_NAME,
                 Key: { userId, gameId },
@@ -103,13 +103,14 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         // to check updated game data
         console.log("Updated profile: ", JSON.stringify(updatedGameData));
+        console.log("[UPDATE ITEM]", JSON.stringify(gameId));
 
         return {
             statusCode: 200,
             headers: { "content-type": "application/json" },
             body: JSON.stringify(
                 {
-                    game: gameId,
+                    gameId: gameId,
                     message: "Game updated successfully"
                 }
             ),

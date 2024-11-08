@@ -1,4 +1,4 @@
-// POST with protected access, authorized users can create new games
+// DELETE request with protected access, authorized users can delete a game
 
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import {
@@ -9,13 +9,7 @@ import {
 } from "../utils";
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { Game } from "../../shared/types";
-import Ajv from "ajv";
-import schema from "../../shared/types.schema.json";
-
-const ajv = new Ajv();
-const isValidBodyParams = ajv.compile(schema.definitions["Game"] || {});
+import { DynamoDBDocumentClient, GetCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 
 const ddbDocClient = createDDbDocClient();
 
@@ -53,38 +47,48 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
             }
         }
 
-        const body = event.body ? JSON.parse(event.body) : undefined;
+        const userId = event.pathParameters?.userId;
+        const gameId = event.queryStringParameters?.gameId;
 
-        if (!body) {
+        if (!userId || !gameId) {
             return {
                 statusCode: 400,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ message: "Invalid data, missing values must be given!" }),
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ message: "Missing IDs in the parameter!" }),
             };
         }
 
-        const insertCommandOutput = await ddbDocClient.send(
-            new PutCommand({
+        // first sending a query to DB to check existence of the game
+        const getCommandOutput = await ddbDocClient.send(
+            new GetCommand({
                 TableName: process.env.GAME_TABLE_NAME,
-                Item: body,
+                Key: { userId, gameId },
             })
         );
 
-        console.log("[INSERT ITEM]", JSON.stringify(body));
+        if (!getCommandOutput.Item) {
+            return {
+                statusCode: 400,
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ message: "Game not found for these IDs of user and game." }),
+            };
+        }
+
+        // then if game exists, delete the game
+        const deleteCommandOutput = await ddbDocClient.send(
+            new DeleteCommand({
+                TableName: process.env.GAME_TABLE_NAME,
+                Key: { userId, gameId },
+            })
+        );
+
+        console.log("Delete Command Response:", deleteCommandOutput.$metadata.httpStatusCode?.toString, "GameID: ", gameId, " and UserID:", userId, " is deleted!");
+        console.log("[DELETE ITEM]", JSON.stringify(gameId));
 
         return {
-            statusCode: 201,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify(
-                {
-                    message: "Game added successfully!",
-                    data: body
-                }
-            ),
+            statusCode: 200,
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ gameId: gameId, message: "Game is deleted successfully!" }),
         };
 
     } catch (error: any) {
@@ -98,6 +102,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         };
     }
 }
+
 
 function createDDbDocClient() {
     const ddbClient = new DynamoDBClient({ region: process.env.REGION });

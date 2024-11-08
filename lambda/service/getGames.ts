@@ -11,13 +11,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     try {
         console.log("Event: ", event);
 
-        const commandOutput = await ddbClient.send(
+        const getCommandOutput = await ddbClient.send(
             new ScanCommand({
                 TableName: process.env.GAME_TABLE_NAME,
             })
         );
 
-        if (!commandOutput.Items) {
+        if (!getCommandOutput.Items) {
             return {
                 statusCode: 404,
                 headers: {
@@ -28,8 +28,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         }
 
         const body = {
-            data: commandOutput.Items,
+            data: getCommandOutput.Items,
         };
+
+        console.log("[SCAN ITEM]", JSON.stringify(body));
 
         // expected return response
         return {

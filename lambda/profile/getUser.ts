@@ -42,6 +42,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
             };
         }
 
+        console.log("[SCAN ITEM]", JSON.stringify(commandOutput.Items));
+
         // expected successfull response return, it will return first user with that username
         // a bad design initially, later on it must be handled and restructured
         // usernames can also be unique and part of primary key in the Users table

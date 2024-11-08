@@ -73,7 +73,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
             expressionAttributeValues[":popularity"] = pop;
         }
 
-        const commandOutput = await ddbDocClient.send(
+        const getFilteredCommandOutput = await ddbDocClient.send(
             new QueryCommand({
                 TableName: process.env.GAME_TABLE_NAME,
                 KeyConditionExpression: keyConditionExpression,
@@ -82,10 +82,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
             })
         );
 
-        console.log("QueryCommand response: ", commandOutput);
-
-
-        if (!commandOutput.Items) {
+        if (!getFilteredCommandOutput.Items) {
             return {
                 statusCode: 404,
                 headers: { "content-type": "application/json" },
@@ -94,8 +91,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
         }
 
         const body = {
-            data: commandOutput.Items,
+            data: getFilteredCommandOutput.Items,
         };
+
+        console.log("[SCAN ITEM]", JSON.stringify(body));
 
         // expected successfull response return
         return {

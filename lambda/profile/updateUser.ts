@@ -91,12 +91,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         // to check updated game data
         console.log("Updated profile: ", JSON.stringify(updatedProfileData));
+        console.log("[UPDATE ITEM]", JSON.stringify(userId));
 
         return {
             statusCode: 200,
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
-                profile: userId,
+                userId: userId,
                 message: "User profile updated successfully"
             }),
         };
