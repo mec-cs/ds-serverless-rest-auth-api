@@ -10,6 +10,7 @@ import {
 
 import { DeleteItemCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, DeleteCommand, GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { UserProfile } from "../../shared/types";
 import apiResponses from '../common/apiResponses';
 
 const ddbDocClient = createDDbDocClient();
@@ -52,6 +53,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         if (!userCommandOutput.Item) {
             return apiResponses._400({ message: "User not found with the ID of", userId })
+        }
+
+        // to check if current authenticated user is the owner of the user item        
+        const userToDelete: UserProfile = userCommandOutput.Item as UserProfile;
+
+        if (userToDelete.email !== verifiedJwt.email) {
+            return apiResponses._403({ message: "You are not authorized to delete this user!" });
         }
 
 
