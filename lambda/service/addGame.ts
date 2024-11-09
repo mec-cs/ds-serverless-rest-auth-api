@@ -48,10 +48,16 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
             return apiResponses._400({ message: "Invalid data, missing values must be given!" });
         }
 
+        const game: Game = {
+            ...body,
+            releaseYear: Number(body.releaseYear),
+            popularity: Number(body.popularity),
+        };
+
         const insertCommandOutput = await ddbDocClient.send(
             new PutCommand({
                 TableName: process.env.GAME_TABLE_NAME,
-                Item: body,
+                Item: game,
             })
         );
 
@@ -59,7 +65,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         return apiResponses._201({
             message: "Game added successfully!",
-            data: body
+            data: game
         })
 
     } catch (error: any) {
