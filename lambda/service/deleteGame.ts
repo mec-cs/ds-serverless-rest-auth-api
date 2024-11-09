@@ -10,6 +10,7 @@ import {
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { UserProfile } from "../../shared/types";
 import apiResponses from '../common/apiResponses';
 
 const ddbDocClient = createDDbDocClient();
@@ -44,18 +45,37 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         }
 
         // first sending a query to DB to check existence of the game
-        const getCommandOutput = await ddbDocClient.send(
+        const gameItemCommandOutput = await ddbDocClient.send(
             new GetCommand({
                 TableName: process.env.GAME_TABLE_NAME,
                 Key: { userId, gameId },
             })
         );
 
-        if (!getCommandOutput.Item) {
-            return apiResponses._400({ message: "Game not found for these IDs of user and game." });
+        if (!gameItemCommandOutput.Item) {
+            return apiResponses._400({ message: "No game found with these IDs of user and game." });
         }
 
-        // then if game exists, delete the game
+        // then sending a query to DB to check owner of the game and authorized user
+        const userItemCommandOutput = await ddbDocClient.send(
+            new GetCommand({
+                TableName: process.env.USER_TABLE_NAME,
+                Key: { userId },
+            })
+        );
+
+        if (!userItemCommandOutput.Item) {
+            return apiResponses._404({ message: "No user found with the ID of ", userId });
+        }
+
+        // to check if current authenticated user is the owner of the game item        
+        const gameOwnerUser: UserProfile = userItemCommandOutput.Item as UserProfile;
+
+        if (gameOwnerUser.email !== verifiedJwt.email) {
+            return apiResponses._403({ message: "You are not authorized to delete this game!" });
+        }
+
+        // if game exists, delete the game
         const deleteCommandOutput = await ddbDocClient.send(
             new DeleteCommand({
                 TableName: process.env.GAME_TABLE_NAME,

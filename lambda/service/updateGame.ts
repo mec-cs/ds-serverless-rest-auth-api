@@ -50,10 +50,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
             return apiResponses._404({ message: "No user found with the ID of ", userId });
         }
 
-        // to check if current authenticated user is the owner of the item        
-        const user: UserProfile = userItemCommandOutput.Item as UserProfile;
+        // to check if current authenticated user is the owner of the game item        
+        const gameOwnerUser: UserProfile = userItemCommandOutput.Item as UserProfile;
 
-        if (user.email !== verifiedJwt.email) {
+        if (gameOwnerUser.email !== verifiedJwt.email) {
             return apiResponses._403({ message: "You are not authorized to update this game!" });
         }
 
