@@ -1,5 +1,5 @@
 import { APIGatewayRequestAuthorizerHandler } from "aws-lambda";
-import { CookieMap, createPolicy, parseCookies, verifyToken } from "../utils";
+import { CookieMap, createPolicy, parseCookies, verifyToken } from "../common/utils";
 
 export const handler: APIGatewayRequestAuthorizerHandler = async (event) => {
     console.log("[EVENT]", event);

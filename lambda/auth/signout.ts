@@ -1,4 +1,5 @@
 import { APIGatewayProxyResult } from "aws-lambda";
+import apiResponses from '../common/apiResponses';
 
 exports.handler = async function (): Promise<APIGatewayProxyResult> {
     return {

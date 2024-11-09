@@ -8,6 +8,7 @@ import { ConfirmSignUpBody } from "../../shared/types";
 
 import Ajv from "ajv";
 import schema from "../../shared/types.schema.json";
+import apiResponses from '../common/apiResponses';
 
 const ajv = new Ajv();
 const isValidBodyParams = ajv.compile(
@@ -22,16 +23,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         const body = event.body ? JSON.parse(event.body) : undefined;
 
         if (!isValidBodyParams(body)) {
-            return {
-                statusCode: 500,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({
-                    message: `Incorrect type. Must match ConfirmSignUpBody schema`,
-                    schema: schema.definitions["ConfirmSignUpBody"],
-                }),
-            };
+            return apiResponses._500({
+                message: `Incorrect type. Must match ConfirmSignUpBody schema`,
+                schema: schema.definitions["ConfirmSignUpBody"],
+            })
         }
 
         const confirmSignUpBody = body as ConfirmSignUpBody;
@@ -45,19 +40,11 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         const command = new ConfirmSignUpCommand(params);
         await client.send(command);
 
-        return {
-            statusCode: 200,
-            body: JSON.stringify({
-                message: `User ${confirmSignUpBody.username} successfully confirmed`,
-                confirmed: true,
-            }),
-        };
+        return apiResponses._200({
+            message: `User ${confirmSignUpBody.username} successfully confirmed`,
+            confirmed: true,
+        })
     } catch (err) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                message: err,
-            }),
-        };
+        return apiResponses._500({ message: err })
     }
 };

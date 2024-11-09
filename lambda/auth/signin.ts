@@ -7,6 +7,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import Ajv from "ajv";
 import schema from "../../shared/types.schema.json";
+import apiResponses from '../common/apiResponses';
 
 const ajv = new Ajv();
 const isValidBodyParams = ajv.compile(schema.definitions["SignInBody"] || {});
@@ -23,17 +24,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         if (!isValidBodyParams(body)) {
             console.log("[Invalid]", body);
 
-            const res = {
-                statusCode: 500,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({
-                    message: `Incorrect type. Must match SignInBody schema`,
-                    schema: schema.definitions["SignInBody"],
-                }),
-            };
-            return res;
+            return apiResponses._500({
+                message: `Incorrect type. Must match SignInBody schema`,
+                schema: schema.definitions["SignInBody"],
+            });
         }
 
         const signInBody = body as SignInBody;
@@ -51,12 +45,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         const { AuthenticationResult } = await client.send(command);
         console.log("Auth", AuthenticationResult);
         if (!AuthenticationResult) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({
-                    message: "User signin failed",
-                }),
-            };
+            return apiResponses._400({ message: "User signin failed" })
         }
 
         const token = AuthenticationResult.IdToken;
@@ -75,12 +64,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         };
     } catch (err) {
         console.error(err);
-
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                message: err,
-            }),
-        };
+        return apiResponses._500({ message: err });
     }
 };

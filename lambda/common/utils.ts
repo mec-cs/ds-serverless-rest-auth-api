@@ -1,5 +1,5 @@
 import { marshall } from "@aws-sdk/util-dynamodb";
-import { Game, UserProfile } from "../shared/types";
+import { Game, UserProfile } from "../../shared/types";
 
 import {
     APIGatewayRequestAuthorizerEvent,

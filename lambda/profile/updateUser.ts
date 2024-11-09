@@ -1,10 +1,11 @@
 // PUT method to a user to update its values, body includes necessary data 
 
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
-import { CookieMap, JwtToken, parseCookies, verifyToken, } from "../utils";
+import { CookieMap, JwtToken, parseCookies, verifyToken, } from "../common/utils";
 import { DynamoDBDocumentClient, UpdateCommand, } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { UserProfile } from "../../shared/types";
+import apiResponses from '../common/apiResponses';
 
 const ddbDocClient = createDDbDocClient();
 
@@ -15,13 +16,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         const cookies: CookieMap = parseCookies(event);
 
         if (!cookies) {
-            return {
-                statusCode: 401,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ message: "Unauthorized request, missing cookie!" }),
-            };
+            return apiResponses._401({ message: "Unauthorized request, missing cookie!" });
         }
 
         const verifiedJwt: JwtToken = await verifyToken(
@@ -33,32 +28,18 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         console.log(JSON.stringify(verifiedJwt));
 
         if (!verifiedJwt) {
-            return {
-                statusCode: 401,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ message: "JWT has failed, sign again!" }),
-            }
+            return apiResponses._401({ message: "JWT has failed, sign again!" });
         }
 
         const userId = event?.queryStringParameters?.userId || {};
         const updatedProfileData = JSON.parse(event.body || "{}");
 
         if (!userId) {
-            return {
-                statusCode: 400,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "Missing user ID parameter!" }),
-            };
+            return apiResponses._400({ message: "Missing user ID parameter!" });
         }
 
         if (!updatedProfileData) {
-            return {
-                statusCode: 400,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "Fields are provided for update!" }),
-            };
+            return apiResponses._400({ message: "Fields are provided for update!" });
         }
 
         const commandOutput = await ddbDocClient.send(
@@ -93,25 +74,14 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         console.log("Updated profile: ", JSON.stringify(updatedProfileData));
         console.log("[UPDATE ITEM]", JSON.stringify(userId));
 
-        return {
-            statusCode: 200,
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-                userId: userId,
-                message: "User profile updated successfully"
-            }),
-        };
-
+        return apiResponses._200({
+            userId: userId,
+            message: "User profile updated successfully"
+        });
 
     } catch (error: any) {
         console.log("[ERROR]", JSON.stringify(error));
-        return {
-            statusCode: 500,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ error }),
-        };
+        return apiResponses._500({ error });
     }
 }
 

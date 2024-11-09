@@ -6,10 +6,11 @@ import {
     JwtToken,
     parseCookies,
     verifyToken,
-} from "../utils";
+} from "../common/utils";
 
 import { DeleteItemCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, DeleteCommand, GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import apiResponses from '../common/apiResponses';
 
 const ddbDocClient = createDDbDocClient();
 
@@ -20,13 +21,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         const cookies: CookieMap = parseCookies(event);
 
         if (!cookies) {
-            return {
-                statusCode: 401,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ message: "Unauthorized request, missing cookie!" }),
-            };
+            return apiResponses._401({ message: "Unauthorized request, missing cookie!" });
         }
 
         const verifiedJwt: JwtToken = await verifyToken(
@@ -38,23 +33,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         console.log(JSON.stringify(verifiedJwt));
 
         if (!verifiedJwt) {
-            return {
-                statusCode: 401,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ message: "JWT has failed, sign again!" }),
-            }
+            return apiResponses._401({ message: "JWT has failed, sign again!" });
         }
 
         const userId = event?.queryStringParameters?.userId || {};
 
         if (!userId) {
-            return {
-                statusCode: 400,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "Missing user ID parameter!" }),
-            };
+            return apiResponses._400({ message: "Missing user ID parameter!" })
         }
 
         // check if user exists
@@ -66,11 +51,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         );
 
         if (!userCommandOutput.Item) {
-            return {
-                statusCode: 400,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "User not found with the ID of", userId }),
-            };
+            return apiResponses._400({ message: "User not found with the ID of", userId })
         }
 
 
@@ -99,14 +80,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
             console.log("Only user with ID of", userId, " is deleted, \nResponse Code:", onlyUserDeleteCommand.$metadata.httpStatusCode)
 
-            return {
-                statusCode: 200,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({
-                    userId: userId,
-                    message: "User without any game is deleted successfully!"
-                }),
-            };
+            return apiResponses._200({
+                userId: userId,
+                message: "User without any game is deleted successfully!"
+            })
         }
 
         const usergames = usergamesQueryOutput.Items
@@ -135,24 +112,14 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         console.log("User with ID of", userId, " is deleted.\nGames: ", usergames, "\nResponse Code:", gameOwnerUserDeleteCommand.$metadata.httpStatusCode);
         console.log("[DELETE ITEM]", JSON.stringify(userId));
 
-        return {
-            statusCode: 200,
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-                userId: userId,
-                message: "User with its games are deleted successfully!"
-            }),
-        };
+        return apiResponses._200({
+            userId: userId,
+            message: "User with its games are deleted successfully!"
+        })
 
     } catch (error: any) {
         console.log("[ERROR]", JSON.stringify(error));
-        return {
-            statusCode: 500,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ error }),
-        };
+        return apiResponses._500({ error })
     }
 }
 

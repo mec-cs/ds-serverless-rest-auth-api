@@ -7,6 +7,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider"; // ES Modules import
 import Ajv from "ajv";
 import schema from "../../shared/types.schema.json";
+import apiResponses from '../common/apiResponses';
 
 const ajv = new Ajv();
 const isValidBodyParams = ajv.compile(schema.definitions["SignUpBody"] || {});
@@ -19,16 +20,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         const body = event.body ? JSON.parse(event.body) : undefined;
 
         if (!isValidBodyParams(body)) {
-            return {
-                statusCode: 500,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({
-                    message: `Incorrect type. Must match SignUpBody schema`,
-                    schema: schema.definitions["SignUpBody"],
-                }),
-            };
+            return apiResponses._500({
+                message: `Incorrect type. Must match SignUpBody schema`,
+                schema: schema.definitions["SignUpBody"],
+            })
         }
 
         const signUpBody = body as SignUpBody;
@@ -43,19 +38,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         const command = new SignUpCommand(params);
         const res = await client.send(command);
 
-        return {
-            statusCode: 200,
-            body: JSON.stringify({
-                message: res,
-            }),
-        };
+        return apiResponses._200({ message: res })
     } catch (err) {
         console.error(err);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                message: err,
-            }),
-        };
+        return apiResponses._500({ message: err })
     }
 };

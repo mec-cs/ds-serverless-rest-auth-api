@@ -3,6 +3,7 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand, QueryCommandInput } from "@aws-sdk/lib-dynamodb";
+import apiResponses from '../common/apiResponses';
 
 const ddbDocClient = createDDbDocClient();
 
@@ -15,11 +16,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         const username = queryParams?.username;
 
         if (!username) {
-            return {
-                statusCode: 400,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "username is required to search a profile!" }),
-            };
+            return apiResponses._400({ message: "username is required to search a profile!" })
         }
 
         let commandInput: QueryCommandInput = {
@@ -35,11 +32,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         );
 
         if (!commandOutput.Items || commandOutput.Items.length === 0) {
-            return {
-                statusCode: 404,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "Profile with specified username is not found!" }),
-            };
+            return apiResponses._404({ message: "Profile with specified username is not found!" })
         }
 
         console.log("[SCAN ITEM]", JSON.stringify(commandOutput.Items));
@@ -47,21 +40,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         // expected successfull response return, it will return first user with that username
         // a bad design initially, later on it must be handled and restructured
         // usernames can also be unique and part of primary key in the Users table
-        return {
-            statusCode: 200,
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ data: commandOutput.Items[0] }),
-        };
+
+        return apiResponses._200({ data: commandOutput.Items[0] })
 
     } catch (error: any) {
         console.log("[ERROR]", JSON.stringify(error));
-        return {
-            statusCode: 500,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ error }),
-        };
+        return apiResponses._500({ error })
     }
 }
 

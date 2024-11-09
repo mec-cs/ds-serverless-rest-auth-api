@@ -3,6 +3,7 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import apiResponses from '../common/apiResponses';
 
 const ddbDocClient = createDDbDocClient();
 
@@ -14,11 +15,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
         const userId = parameters?.userId;
 
         if (!userId) {
-            return {
-                statusCode: 400,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "a game ID is required to find!" }),
-            };
+            return apiResponses._400({ message: "a game ID is required to find!" });
         }
 
         // genre=action , filter=[gt, lt, et] --> greater than, less than, equal to
@@ -41,11 +38,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
             const pop = parseInt(popularity);
 
             if (isNaN(pop)) {
-                return {
-                    statusCode: 400,
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify({ message: "Invalid popularity data, it must be number!" }),
-                };
+                return apiResponses._400({ message: "Invalid popularity data, it must be number!" });
             }
 
             if (filterExpression) {
@@ -63,11 +56,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
                     filterExpression += "popularity = :popularity";
                     break;
                 default:
-                    return {
-                        statusCode: 400,
-                        headers: { "content-type": "application/json" },
-                        body: JSON.stringify({ message: "Invalid filter parameter, ['gt','lt','et']" }),
-                    };
+                    return apiResponses._400({ message: "Invalid filter parameter, ['gt','lt','et']" });
             }
 
             expressionAttributeValues[":popularity"] = pop;
@@ -83,11 +72,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
         );
 
         if (!getFilteredCommandOutput.Items) {
-            return {
-                statusCode: 404,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ message: "A game with parameters is not found!" }),
-            };
+            return apiResponses._404({ message: "A game with parameters is not found!" });
         }
 
         const body = {
@@ -97,21 +82,11 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
         console.log("[SCAN ITEM]", JSON.stringify(body));
 
         // expected successfull response return
-        return {
-            statusCode: 200,
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ body }),
-        };
+        return apiResponses._200({ body });
 
     } catch (error: any) {
         console.log("[ERROR]", JSON.stringify(error));
-        return {
-            statusCode: 500,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ error }),
-        };
+        return apiResponses._500({ error });
     }
 };
 

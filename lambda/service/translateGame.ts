@@ -1,1 +1,0 @@
-// GET request "translation?language=fr", public access

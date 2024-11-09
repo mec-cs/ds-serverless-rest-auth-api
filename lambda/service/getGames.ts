@@ -4,6 +4,7 @@ import { Table } from "aws-cdk-lib/aws-dynamodb";
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import apiResponses from '../common/apiResponses';
 
 const ddbClient = new DynamoDBClient({ region: process.env.REGION });
 
@@ -18,13 +19,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         );
 
         if (!getCommandOutput.Items) {
-            return {
-                statusCode: 404,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ Message: "Invalid operation!" }),
-            };
+            return apiResponses._404({ message: "Invalid operation!" });
         }
 
         const body = {
@@ -34,22 +29,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         console.log("[SCAN ITEM]", JSON.stringify(body));
 
         // expected return response
-        return {
-            statusCode: 200,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify(body),
-        };
+        return apiResponses._200({ body });
 
     } catch (error: any) {
         console.log("[ERROR]", JSON.stringify(error));
-        return {
-            statusCode: 500,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ error }),
-        };
+        return apiResponses._500({ error });
     }
 };

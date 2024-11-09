@@ -6,7 +6,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as node from "aws-cdk-lib/aws-lambda-nodejs";
 import * as custom from "aws-cdk-lib/custom-resources";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import { generateBatch } from "../lambda/utils";
+import { generateBatch } from "../lambda/common/utils";
 import { games, users } from "../seed/games"
 
 type AppApiProps = {
@@ -130,9 +130,9 @@ export class AppApi extends Construct {
             entry: "./lambda/service/deleteGame.ts",
         });
 
-        const translateGameFn = new node.NodejsFunction(this, "TranslateGameFn", {
+        const translateFn = new node.NodejsFunction(this, "TranslateGameFn", {
             ...appCommonFnProps,
-            entry: "./lambda/service/translateGame.ts",
+            entry: "./lambda/function/translate.ts",
         });
 
         // lambda functions for profile
@@ -155,7 +155,7 @@ export class AppApi extends Construct {
         gamesTable.grantFullAccess(getGamesFn);
         gamesTable.grantFullAccess(getGameByFilter);
         gamesTable.grantFullAccess(addGameFn);
-        gamesTable.grantFullAccess(translateGameFn);
+        gamesTable.grantFullAccess(translateFn);
         gamesTable.grantFullAccess(updateGameFn);
         gamesTable.grantFullAccess(deleteUserFn);
         gamesTable.grantFullAccess(deleteGameFn);
@@ -212,7 +212,7 @@ export class AppApi extends Construct {
         });
 
         // GET translation of a game, protected to the authorized users
-        translationResource.addMethod("GET", new apig.LambdaIntegration(translateGameFn), {
+        translationResource.addMethod("POST", new apig.LambdaIntegration(translateFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });

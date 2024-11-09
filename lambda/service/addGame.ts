@@ -6,13 +6,14 @@ import {
     JwtToken,
     parseCookies,
     verifyToken,
-} from "../utils";
+} from "../common/utils";
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { Game } from "../../shared/types";
 import Ajv from "ajv";
 import schema from "../../shared/types.schema.json";
+import apiResponses from '../common/apiResponses';
 
 const ajv = new Ajv();
 const isValidBodyParams = ajv.compile(schema.definitions["Game"] || {});
@@ -26,13 +27,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         const cookies: CookieMap = parseCookies(event);
 
         if (!cookies) {
-            return {
-                statusCode: 401,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ message: "Unauthorized request, missing cookie!" }),
-            };
+            return apiResponses._401({ message: "Unauthorized request, missing cookie!" });
         }
 
         const verifiedJwt: JwtToken = await verifyToken(
@@ -44,25 +39,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         console.log(JSON.stringify(verifiedJwt));
 
         if (!verifiedJwt) {
-            return {
-                statusCode: 401,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ message: "JWT has failed, sign again!" }),
-            }
+            return apiResponses._400({ message: "JWT has failed, sign again!" })
         }
 
         const body = event.body ? JSON.parse(event.body) : undefined;
 
         if (!body) {
-            return {
-                statusCode: 400,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({ message: "Invalid data, missing values must be given!" }),
-            };
+            return apiResponses._400({ message: "Invalid data, missing values must be given!" });
         }
 
         const insertCommandOutput = await ddbDocClient.send(
@@ -74,28 +57,14 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         console.log("[INSERT ITEM]", JSON.stringify(body));
 
-        return {
-            statusCode: 201,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify(
-                {
-                    message: "Game added successfully!",
-                    data: body
-                }
-            ),
-        };
+        return apiResponses._201({
+            message: "Game added successfully!",
+            data: body
+        })
 
     } catch (error: any) {
         console.log("[ERROR]", JSON.stringify(error));
-        return {
-            statusCode: 500,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ error }),
-        };
+        return apiResponses._500({ error })
     }
 }
 
