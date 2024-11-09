@@ -4,7 +4,7 @@ import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { CookieMap, JwtToken, parseCookies, verifyToken, } from "../common/utils";
 import { DynamoDBDocumentClient, UpdateCommand, GetCommand, } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { Game } from "../../shared/types";
+import { Game, UserProfile } from "../../shared/types";
 import apiResponses from '../common/apiResponses';
 
 const ddbDocClient = createDDbDocClient();
@@ -39,6 +39,24 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
             return apiResponses._400({ message: "Missing IDs in the parameter!" });
         }
 
+        const userItemCommandOutput = await ddbDocClient.send(
+            new GetCommand({
+                TableName: process.env.USER_TABLE_NAME,
+                Key: { userId },
+            })
+        );
+
+        if (!userItemCommandOutput.Item) {
+            return apiResponses._404({ message: "No user found with the ID of ", userId });
+        }
+
+        // to check if current authenticated user is the owner of the item        
+        const user: UserProfile = userItemCommandOutput.Item as UserProfile;
+
+        if (user.email !== verifiedJwt.email) {
+            return apiResponses._403({ message: "You are not authorized to update this game!" });
+        }
+
         // to check whether a game item existing with give IDs
         const gameItemCommandOutput = await ddbDocClient.send(
             new GetCommand({
@@ -48,7 +66,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         );
 
         if (!gameItemCommandOutput.Item) {
-            return apiResponses._404({ message: "No game found with the given IDs!" });
+            return apiResponses._404({ message: "No game found with the given ID" });
         }
 
         const updateCommandOutput = await ddbDocClient.send(
@@ -88,6 +106,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         return apiResponses._200({
             gameId: gameId,
+            verifiedJwtSub: verifiedJwt.sub,
             message: "Game updated successfully"
         });
 

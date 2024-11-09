@@ -1,4 +1,4 @@
-// POST with protected access, authorized users can create new games
+// POST with protected access, authorized users can create their users
 
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import {
@@ -8,17 +8,15 @@ import {
     verifyToken,
 } from "../common/utils";
 
-import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { Game, UserProfile } from "../../shared/types";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { Game } from "../../shared/types";
 import Ajv from "ajv";
 import schema from "../../shared/types.schema.json";
 import apiResponses from '../common/apiResponses';
-import { UserPassword } from "aws-sdk/clients/directoryservice";
-import { UserProficiency } from "aws-sdk/clients/connect";
 
 const ajv = new Ajv();
-const isValidBodyParams = ajv.compile(schema.definitions["Game"] || {});
+const isValidBodyParams = ajv.compile(schema.definitions["UserProfileParams"] || {});
 
 const ddbDocClient = createDDbDocClient();
 
@@ -53,27 +51,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         if (!isValidBodyParams(body)) {
             return apiResponses._500({
                 message: `Incorrect type. Must match the schema`,
-                schema: schema.definitions["Game"],
-            })
+                schema: schema.definitions["UserProfileParams"],
+            });
         }
-
-        const game: Game = {
-            ...body,
-            userId: "",
-            releaseYear: Number(body.releaseYear),
-            popularity: Number(body.popularity),
-        } as Game;
-
-        const userId = game.userId;
-        const userEmail = verifiedJwt.email;
-
-        // check the userId of the user adding the game
-        const checkUserIdCommand = await ddbDocClient.send(
-            new GetCommand({
-                TableName: process.env.USER_TABLE_NAME,
-                Key: { userId },
-            })
-        );
 
         const getUserByEmailCommand = await ddbDocClient.send(
             new QueryCommand({
@@ -84,35 +64,30 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
                     "#email": "email",
                 },
                 ExpressionAttributeValues: {
-                    ":emailValue": { S: userEmail },
+                    ":emailValue": verifiedJwt.email,
                 },
                 Limit: 1
             })
         );
 
-        if (!getUserByEmailCommand.Items || getUserByEmailCommand.Items.length === 0) {
-            return apiResponses._403({ message: "You are not authorized to create a game, first create a user profile!" });
+        if (getUserByEmailCommand.Items && getUserByEmailCommand.Items.length !== 0) {
+            return apiResponses._404({ message: "You already have a user account!" });
         }
 
-        const userFromEmail = getUserByEmailCommand.Items[0].userId.S!;
+        body["email"] = verifiedJwt.email;
 
-        if (userFromEmail !== userEmail) {
-            return apiResponses._403({ message: "You are not authorized to update this game, you are not owner!" });
-        }
-
-        const insertCommandOutput = await ddbDocClient.send(
+        const createNewUserCommand = await ddbDocClient.send(
             new PutCommand({
-                TableName: process.env.GAME_TABLE_NAME,
-                Item: game,
+                TableName: process.env.USER_TABLE_NAME,
+                Item: body,
             })
         );
 
-        console.log("[INSERT ITEM]", JSON.stringify(body));
-
-        return apiResponses._201({
-            message: "Game added successfully!",
-            data: game
-        })
+        return apiResponses._200({
+            message: "New user is created!",
+            status: createNewUserCommand.$metadata.httpStatusCode,
+            user: body
+        });
 
     } catch (error: any) {
         console.log("[ERROR]", JSON.stringify(error));

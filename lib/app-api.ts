@@ -46,6 +46,12 @@ export class AppApi extends Construct {
             projectionType: dynamodb.ProjectionType.ALL,
         });
 
+        usersTable.addGlobalSecondaryIndex({
+            indexName: "EmailIndex",
+            partitionKey: { name: "email", type: dynamodb.AttributeType.STRING },
+            projectionType: dynamodb.ProjectionType.ALL
+        });
+
         const appApi = new apig.RestApi(this, "AppApi", {
             description: "App RestApi",
             endpointTypes: [apig.EndpointType.REGIONAL],
@@ -141,15 +147,16 @@ export class AppApi extends Construct {
             entry: "./lambda/profile/getUser.ts",
         });
 
-        const updateUserProfileFn = new node.NodejsFunction(this, "UpdateUserProfileFn", {
-            ...appCommonFnProps,
-            entry: "./lambda/profile/updateUser.ts",
-        });
-
         const deleteUserFn = new node.NodejsFunction(this, "DeleteUserFn", {
             ...appCommonFnProps,
             entry: "./lambda/profile/deleteUser.ts",
         });
+
+        const addUserFn = new node.NodejsFunction(this, "AddUserFn", {
+            ...appCommonFnProps,
+            entry: "./lambda/profile/addUser.ts",
+        });
+
 
         // table accesses
         gamesTable.grantFullAccess(getGamesFn);
@@ -159,10 +166,10 @@ export class AppApi extends Construct {
         gamesTable.grantFullAccess(updateGameFn);
         gamesTable.grantFullAccess(deleteUserFn);
         gamesTable.grantFullAccess(deleteGameFn);
-        gamesTable.grantFullAccess(updateUserProfileFn);
 
         usersTable.grantFullAccess(getUserProfileFn);
         usersTable.grantFullAccess(deleteUserFn);
+        usersTable.grantFullAccess(addUserFn);
 
 
         // api endpoints
@@ -217,14 +224,14 @@ export class AppApi extends Construct {
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
 
-        // PUT request to update profile
-        profileResource.addResource("{userId}").addMethod("PUT", new apig.LambdaIntegration(updateUserProfileFn), {
+        // DELETE request to delete profile and its associated games
+        profileResource.addMethod("DELETE", new apig.LambdaIntegration(deleteUserFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
 
-        // DELETE request to delete profile and its associated games
-        profileResource.addMethod("DELETE", new apig.LambdaIntegration(deleteUserFn), {
+        // POST request to add new user profile
+        profileResource.addMethod("POST", new apig.LambdaIntegration(addUserFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });

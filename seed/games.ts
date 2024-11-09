@@ -142,7 +142,6 @@ export const users: UserProfile[] = [
         username: 'alicejohnson21',
         name: 'Alice Johnson',
         email: 'alice.johnson@example.com',
-        joinedDate: '2021-01-15',
         favoriteGenres: ['RPG', 'Adventure'],
     },
     {
@@ -150,7 +149,6 @@ export const users: UserProfile[] = [
         username: 'bobsmith87',
         name: 'Bob Smith',
         email: 'bob.smith@example.com',
-        joinedDate: '2021-03-22',
         favoriteGenres: ['Puzzle', 'Survival'],
     },
     {
@@ -158,7 +156,6 @@ export const users: UserProfile[] = [
         username: 'ethanhunt007',
         name: 'Ethan Hunt',
         email: 'ethan.hunt@example.com',
-        joinedDate: '2021-07-18',
         favoriteGenres: ['Action', 'Adventure'],
     }
 ];

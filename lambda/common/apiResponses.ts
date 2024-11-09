@@ -35,6 +35,15 @@ const apiResponses = {
             body: JSON.stringify(body, null, 2),
         }
     },
+    _403: (body: { [key: string]: any }) => {
+        return {
+            statusCode: 401,
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify(body, null, 2),
+        }
+    },
     _404: (body: { [key: string]: any }) => {
         return {
             statusCode: 401,
