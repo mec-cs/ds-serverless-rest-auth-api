@@ -64,17 +64,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
             popularity: Number(body.popularity),
         } as Game;
 
-        const userId = game.userId;
-        const userEmail = verifiedJwt.email;
-
-        // check the userId of the user adding the game
-        const checkUserIdCommand = await ddbDocClient.send(
-            new GetCommand({
-                TableName: process.env.USER_TABLE_NAME,
-                Key: { userId },
-            })
-        );
-
         const getUserByEmailCommand = await ddbDocClient.send(
             new QueryCommand({
                 TableName: "Users",
@@ -84,7 +73,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
                     "#email": "email",
                 },
                 ExpressionAttributeValues: {
-                    ":emailValue": { S: userEmail },
+                    ":emailValue": { S: verifiedJwt.email },
                 },
                 Limit: 1
             })
@@ -94,11 +83,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
             return apiResponses._403({ message: "You are not authorized to create a game, first create a user profile!" });
         }
 
-        const userFromEmail = getUserByEmailCommand.Items[0].userId.S!;
-
-        if (userFromEmail !== userEmail) {
-            return apiResponses._403({ message: "You are not authorized to update this game, you are not owner!" });
-        }
+        const gameOwnerUser = getUserByEmailCommand.Items[0];
+        game.userId = gameOwnerUser.userId.S!;
 
         const insertCommandOutput = await ddbDocClient.send(
             new PutCommand({
@@ -110,6 +96,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         console.log("[INSERT ITEM]", JSON.stringify(body));
 
         return apiResponses._201({
+            stat: insertCommandOutput.$metadata.httpStatusCode,
             message: "Game added successfully!",
             data: game
         })

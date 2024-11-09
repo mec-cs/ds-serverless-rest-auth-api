@@ -85,7 +85,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         return apiResponses._200({
             message: "New user is created!",
-            status: createNewUserCommand.$metadata.httpStatusCode,
+            stat: createNewUserCommand.$metadata.httpStatusCode,
             user: body
         });
 
