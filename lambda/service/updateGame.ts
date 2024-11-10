@@ -106,7 +106,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         return apiResponses._200({
             gameId: gameId,
-            verifiedJwtSub: verifiedJwt.sub,
+            updaterEmail: verifiedJwt.email,
             message: "Game updated successfully"
         });
 

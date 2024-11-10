@@ -14,11 +14,9 @@ import { Game, UserProfile } from "../../shared/types";
 import Ajv from "ajv";
 import schema from "../../shared/types.schema.json";
 import apiResponses from '../common/apiResponses';
-import { UserPassword } from "aws-sdk/clients/directoryservice";
-import { UserProficiency } from "aws-sdk/clients/connect";
 
 const ajv = new Ajv();
-const isValidBodyParams = ajv.compile(schema.definitions["Game"] || {});
+const isValidBodyParams = ajv.compile(schema.definitions["GameCreateParams"] || {});
 
 const ddbDocClient = createDDbDocClient();
 
@@ -53,7 +51,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
         if (!isValidBodyParams(body)) {
             return apiResponses._500({
                 message: `Incorrect type. Must match the schema`,
-                schema: schema.definitions["Game"],
+                schema: schema.definitions["GameCreateParams"],
             })
         }
 
@@ -66,7 +64,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any) => {
 
         const getUserByEmailCommand = await ddbDocClient.send(
             new QueryCommand({
-                TableName: "Users",
+                TableName: process.env.USER_TABLE_NAME,
                 IndexName: "EmailIndex",
                 KeyConditionExpression: "#email = :emailValue",
                 ExpressionAttributeNames: {

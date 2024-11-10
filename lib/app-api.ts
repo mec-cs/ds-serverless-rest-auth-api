@@ -170,6 +170,9 @@ export class AppApi extends Construct {
         usersTable.grantFullAccess(getUserProfileFn);
         usersTable.grantFullAccess(deleteUserFn);
         usersTable.grantFullAccess(addUserFn);
+        usersTable.grantFullAccess(addGameFn);
+        usersTable.grantFullAccess(deleteGameFn);
+        usersTable.grantFullAccess(updateGameFn);
 
 
         // api endpoints
