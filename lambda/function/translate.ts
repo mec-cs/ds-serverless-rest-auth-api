@@ -1,10 +1,11 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import 'source-map-support/register';
 import apiResponses from '../common/apiResponses';
 import * as AWS from 'aws-sdk';
-import { Game } from "../../shared/types";
+import { Game, Translation } from "../../shared/types";
+import { describe } from 'node:test';
 
 const translate = new AWS.Translate();
 const ddbDocClient = createDDbDocClient();
@@ -52,7 +53,33 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
         // if game has a translation and that translation is selected language, return it without any process
         if (game.sourceLanguage === languageCode) {
-            return apiResponses._200({ language: language, translated: "false", game: game });
+            return apiResponses._200({
+                language: language,
+                translated: "false",
+                tableUsed: "false",
+                gameId: game.gameId,
+                translatedData: JSON.stringify({ title: game.title, genre: game.genre, description: game.description }),
+            });
+        }
+
+        const translationCheckCommand = await ddbDocClient.send(
+            new GetCommand({
+                TableName: process.env.TRANSLATE_TABLE_NAME,
+                Key: {
+                    gameId: gameId,
+                    targetLanguage: languageCode,
+                },
+            })
+        );
+
+        if (translationCheckCommand.Item) {
+            return apiResponses._200({
+                language: language,
+                translated: "false",
+                tableUsed: "true",
+                gameId: game.gameId,
+                translatedData: JSON.stringify(translationCheckCommand.Item.text)
+            });
         }
 
         // translation order : title -> genre -> description
@@ -69,13 +96,22 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             game[field] = translateMessage.TranslatedText;
         }
 
+        const translatedItem: Translation = { gameId: game.gameId, targetLanguage: languageCode, text: JSON.stringify({ title: game.title, genre: game.genre, description: game.description }) };
+
+        const translatedPutCommand = await ddbDocClient.send(
+            new PutCommand({
+                TableName: process.env.TRANSLATE_TABLE_NAME,
+                Item: translatedItem
+            })
+        );
+
         // to check updated game data
-        console.log("[TRANSLATE ITEM]", JSON.stringify({ gameId: gameId, game: game }));
-        return apiResponses._200({ language: language, translated: "true", game: game });
+        console.log("[TRANSLATE ITEM]", JSON.stringify({ stat: translatedPutCommand.$metadata.httpStatusCode, gameId: gameId, game: game }));
+        return apiResponses._200({ language: language, translated: "true", tableUsed: "false", gameId: game.gameId, translatedData: translatedItem.text });
 
     } catch (error: any) {
         console.log('error in the translation', error);
-        return apiResponses._400({ message: 'unable to translate the message' });
+        return apiResponses._400({ message: 'Unable to translate the message' });
     }
 };
 

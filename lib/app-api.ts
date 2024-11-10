@@ -52,6 +52,14 @@ export class AppApi extends Construct {
             projectionType: dynamodb.ProjectionType.ALL
         });
 
+        const translateTable = new dynamodb.Table(this, "TranslateTable", {
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            partitionKey: { name: "gameId", type: dynamodb.AttributeType.STRING },
+            sortKey: { name: "targetLanguage", type: dynamodb.AttributeType.STRING },
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            tableName: "Translations",
+        });
+
         const appApi = new apig.RestApi(this, "AppApi", {
             description: "App RestApi",
             endpointTypes: [apig.EndpointType.REGIONAL],
@@ -69,6 +77,7 @@ export class AppApi extends Construct {
             environment: {
                 GAME_TABLE_NAME: gamesTable.tableName,
                 USER_TABLE_NAME: usersTable.tableName,
+                TRANSLATE_TABLE_NAME: translateTable.tableName,
                 USER_POOL_ID: props.userPoolId,
                 CLIENT_ID: props.userPoolClientId,
                 REGION: cdk.Aws.REGION,
@@ -174,6 +183,8 @@ export class AppApi extends Construct {
         usersTable.grantFullAccess(deleteGameFn);
         usersTable.grantFullAccess(updateGameFn);
 
+        translateTable.grantFullAccess(translateFn);
+
 
         // api endpoints
         // game : /games
@@ -222,7 +233,7 @@ export class AppApi extends Construct {
         });
 
         // GET translation of a game, protected to the authorized users
-        translationResource.addMethod("POST", new apig.LambdaIntegration(translateFn), {
+        translationResource.addMethod("GET", new apig.LambdaIntegration(translateFn), {
             authorizer: requestAuthorizer,
             authorizationType: apig.AuthorizationType.CUSTOM,
         });
