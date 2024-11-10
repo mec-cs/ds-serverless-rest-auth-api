@@ -6,6 +6,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as node from "aws-cdk-lib/aws-lambda-nodejs";
 import * as custom from "aws-cdk-lib/custom-resources";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { generateBatch } from "../lambda/common/utils";
 import { games, users } from "../seed/games"
 
@@ -149,6 +150,11 @@ export class AppApi extends Construct {
             ...appCommonFnProps,
             entry: "./lambda/function/translate.ts",
         });
+
+        translateFn.addToRolePolicy(new iam.PolicyStatement({
+            actions: ["translate:*"],
+            resources: ["*"],
+        }));
 
         // lambda functions for profile
         const getUserProfileFn = new node.NodejsFunction(this, "GetUserProfileFn", {
