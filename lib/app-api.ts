@@ -233,10 +233,7 @@ export class AppApi extends Construct {
         });
 
         // GET translation of a game, protected to the authorized users
-        translationResource.addMethod("GET", new apig.LambdaIntegration(translateFn), {
-            authorizer: requestAuthorizer,
-            authorizationType: apig.AuthorizationType.CUSTOM,
-        });
+        translationResource.addMethod("GET", new apig.LambdaIntegration(translateFn));
 
         // DELETE request to delete profile and its associated games
         profileResource.addMethod("DELETE", new apig.LambdaIntegration(deleteUserFn), {
